@@ -1,52 +1,36 @@
 // session.js
 // -------------
-// Handles generation and persistence of a simple session ID on the client.
-// This ID will be sent along with uploads so the backend can track sessions.
-
-const SESSION_STORAGE_KEY = "datasetConverterSessionId";
+// Generates a new ticket ID every time it is called.
+// This ID is NOT stored in localStorage or sessionStorage.
+//
+// The ticket ID is designed to be filesystem-friendly so it can be safely
+// used as a folder name on the server side (only letters, numbers, dashes).
 
 /**
- * Ensures we have a stable session ID in localStorage and returns it.
- * The ID is generated once and reused across page reloads.
+ * Returns a new ticket ID.
+ *
+ * Every call returns a fresh value. The frontend should keep this ticket
+ * in memory (e.g. in app.js state) for the duration of a single upload/job.
  */
 export function getSessionId() {
-  let existing = null;
-  try {
-    existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
-  } catch {
-    // In very restricted environments localStorage may not be available.
-    existing = null;
-  }
-
-  if (existing) {
-    return existing;
-  }
-
-  const newId = generateSessionId();
-
-  try {
-    window.localStorage.setItem(SESSION_STORAGE_KEY, newId);
-  } catch {
-    // Ignore storage errors, we can still use in-memory session for this tab.
-  }
-
-  return newId;
+  return generateTicketId();
 }
 
 /**
- * Generate a reasonably unique session identifier.
+ * Generate a reasonably unique ticket identifier.
  * Uses crypto.randomUUID when available, falls back to timestamp + random.
  */
-function generateSessionId() {
+function generateTicketId() {
   if (window.crypto && typeof window.crypto.randomUUID === "function") {
-    return window.crypto.randomUUID();
+    // UUID is filesystem-friendly on both Windows and Linux.
+    return `ticket-${window.crypto.randomUUID()}`;
   }
 
-  // Fallback: timestamp + random suffix
+  // Fallback: timestamp + random suffix (hex)
   const timestamp = Date.now().toString(16);
   const random = Math.floor(Math.random() * 1e16)
     .toString(16)
     .padStart(12, "0");
 
-  return `sess-${timestamp}-${random}`;
+  return `ticket-${timestamp}-${random}`;
 }

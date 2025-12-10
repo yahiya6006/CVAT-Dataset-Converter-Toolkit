@@ -1,7 +1,7 @@
 // app.js
 // ---------
-// Entry point for the Stage 1 frontend.
-// Wires up UI events, keeps simple state, and calls the API wrapper.
+// Entry point for the frontend.
+// Wires up UI events, keeps simple state, and calls the API wrappers.
 
 import { getSessionId } from "./session.js";
 import {
@@ -12,11 +12,11 @@ import {
   setAllInputsDisabled,
   updateFileInfo,
 } from "./dom.js";
-import { uploadDataset } from "./api.js";
+import { uploadDataset, fetchUploadStatus } from "./api.js";
+import { STATUS_POLL_CONFIG } from "./config.js";
 
 /**
  * Simple in-memory state for the current page.
- * This is intentionally small and explicit.
  */
 const state = {
   file: null,
@@ -24,13 +24,16 @@ const state = {
   targetFormat: "",
   featureType: "",
   isUploading: false,
+
+  // Ticket for the current upload/job
+  ticketId: null,
+
+  // Timers for status polling
+  statusPollTimeoutId: null,
+  statusPollIntervalId: null,
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Ensure we have a session ID (used later in backend calls).
-  // We no longer show it in the UI.
-  getSessionId();
-
   // Connect form elements
   const fileInput = document.getElementById("zipFileInput");
   const inputFormatSelect = document.getElementById("inputFormatSelect");
@@ -41,7 +44,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const nextButton = document.getElementById("nextButton");
 
   if (!fileInput || !inputFormatSelect || !targetFormatSelect || !nextButton) {
-    // This should not happen unless the HTML was changed incorrectly.
     console.error("One or more required DOM elements are missing.");
     return;
   }
@@ -78,8 +80,6 @@ document.addEventListener("DOMContentLoaded", () => {
       toggleFeatureOptions(state.featureType);
 
       // If we switch to "crop_objects", Step 4 (target format) is irrelevant.
-      // We keep state.targetFormat as-is but adjust validation logic,
-      // and we'll send an empty target format to the backend.
       refreshNextButtonState();
       clearStatus();
     });
@@ -88,10 +88,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // 5) Next button click
   nextButton.addEventListener("click", async () => {
     if (state.isUploading) {
-      return; // Guard against double-click
+      return; // Guard against double-click during upload
     }
 
-    // Final validation check
     if (!isStateValidForUpload()) {
       showStatus(
         "error",
@@ -100,17 +99,23 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const sessionIdNow = getSessionId(); // ensure we always use the same ID
+    // New ticket for this upload/job
+    const ticketId = getSessionId();
+    state.ticketId = ticketId;
+
     const featureParams = collectFeatureParams(state.featureType);
 
     // For cropping, target format is not used, so we send an empty string.
     const targetFormatToSend =
       state.featureType === "crop_objects" ? "" : state.targetFormat;
 
+    // Cancel any previous polling timers (if user re-runs an upload)
+    stopStatusPolling();
+
     // Start upload
     state.isUploading = true;
     setAllInputsDisabled(true);
-    showStatus("info", "Uploading dataset to backend (Stage 2)…");
+    showStatus("info", "Uploading dataset to backend…");
 
     try {
       const result = await uploadDataset({
@@ -119,10 +124,9 @@ document.addEventListener("DOMContentLoaded", () => {
         targetFormat: targetFormatToSend,
         featureType: state.featureType,
         featureParams,
-        sessionId: sessionIdNow,
+        sessionId: ticketId,
       });
 
-      // For Stage 1, we don't expect a particular schema; just show something.
       let message = "Upload request sent successfully.";
       if (result && typeof result === "object") {
         if (result.message) {
@@ -134,8 +138,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       showStatus(
         "success",
-        `${message} (Backend processing will be implemented in Stage 2.)`
+        `${message} Starting status polling for ticket ${ticketId}…`
       );
+
+      // Start status polling:
+      // - First call after STATUS_POLL_CONFIG.initialDelayMs
+      // - Then every STATUS_POLL_CONFIG.intervalMs
+      startStatusPolling();
     } catch (err) {
       console.error("Upload error:", err);
       const errorMessage =
@@ -144,7 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : "Network error while sending upload request.";
       showStatus(
         "error",
-        `${errorMessage} (Is the backend running at http://localhost:8000?)`
+        `${errorMessage} (Is the backend running at the configured API URL?)`
       );
     } finally {
       state.isUploading = false;
@@ -227,4 +236,85 @@ function collectFeatureParams(featureType) {
 
   // Default: no extra parameters
   return {};
+}
+
+/**
+ * Starts polling /status for the current ticket in state.ticketId.
+ * - First poll after STATUS_POLL_CONFIG.initialDelayMs.
+ * - Then polls every STATUS_POLL_CONFIG.intervalMs.
+ */
+function startStatusPolling() {
+  if (!state.ticketId) {
+    console.warn("No ticketId set; cannot start status polling.");
+    return;
+  }
+
+  // Ensure previous timers are cleared
+  stopStatusPolling();
+
+  state.statusPollTimeoutId = window.setTimeout(async () => {
+    // First poll
+    await pollStatusOnce();
+
+    // Subsequent polls
+    state.statusPollIntervalId = window.setInterval(
+      pollStatusOnce,
+      STATUS_POLL_CONFIG.intervalMs
+    );
+  }, STATUS_POLL_CONFIG.initialDelayMs);
+}
+
+/**
+ * Stops any active status polling timers.
+ */
+function stopStatusPolling() {
+  if (state.statusPollTimeoutId !== null) {
+    window.clearTimeout(state.statusPollTimeoutId);
+    state.statusPollTimeoutId = null;
+  }
+  if (state.statusPollIntervalId !== null) {
+    window.clearInterval(state.statusPollIntervalId);
+    state.statusPollIntervalId = null;
+  }
+}
+
+/**
+ * Performs a single /status call for the current ticket and updates the UI.
+ */
+async function pollStatusOnce() {
+  if (!state.ticketId) {
+    return;
+  }
+
+  try {
+    const status = await fetchUploadStatus(state.ticketId);
+    console.log("Status for ticket", state.ticketId, status);
+
+    if (status && status.state) {
+      let message = `Ticket ${state.ticketId} — state: ${status.state}`;
+
+      // If backend returns upload progress, show it
+      if (status.upload && typeof status.upload.progress === "number") {
+        const pct = Math.round(status.upload.progress * 100);
+        message += ` • upload: ${pct}%`;
+      }
+
+      showStatus("info", message);
+
+      // Stop polling if backend reports terminal states
+      if (status.state === "finished" || status.state === "error") {
+        stopStatusPolling();
+      }
+    } else {
+      showStatus("info", `Status response: ${JSON.stringify(status)}`);
+    }
+  } catch (err) {
+    console.error("Status polling error:", err);
+    showStatus(
+      "error",
+      "Unable to fetch status from backend (is /status implemented?)."
+    );
+    // Optional: stop polling on error to avoid spamming the backend
+    stopStatusPolling();
+  }
 }

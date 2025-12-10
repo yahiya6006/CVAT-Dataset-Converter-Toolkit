@@ -1,14 +1,12 @@
 // api.js
 // ---------
 // Contains thin wrappers around HTTP calls to the backend.
-// For Stage 1, we focus on /upload. The backend itself will be implemented in Stage 2.
+//
+// For Stage 2, we focus on:
+// - POST /upload  (uploadDataset)
+// - GET  /status  (fetchUploadStatus)
 
-/**
- * Base URL for the backend API.
- * For Stage 1, we assume FastAPI will run at http://localhost:8000.
- * You can change this if needed.
- */
-const API_BASE_URL = "http://localhost:8000";
+import { API_BASE_URL } from "./config.js";
 
 /**
  * Uploads the selected dataset ZIP and metadata to the backend.
@@ -16,10 +14,10 @@ const API_BASE_URL = "http://localhost:8000";
  * @param {Object} params
  * @param {File} params.file - The ZIP file selected by the user.
  * @param {string} params.inputFormat - Selected input format (e.g. "cvat_images_1_1").
- * @param {string} params.targetFormat - Selected target format (e.g. "yolo_v5").
- * @param {string} params.featureType - Selected feature type ("convert_only", ...).
+ * @param {string} params.targetFormat - Selected target format (e.g. "yolo", or "" for crop mode).
+ * @param {string} params.featureType - Selected feature type ("convert_only", "resize_and_convert", "crop_objects").
  * @param {Object} params.featureParams - Additional options depending on featureType.
- * @param {string} params.sessionId - Client session ID.
+ * @param {string} params.sessionId - Ticket ID for this upload/job.
  *
  * @returns {Promise<Object>} Parsed JSON response from backend.
  */
@@ -50,9 +48,8 @@ export async function uploadDataset({
     body: formData,
   });
 
-  const isJson =
-    response.headers.get("content-type") &&
-    response.headers.get("content-type").includes("application/json");
+  const contentType = response.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
 
   if (!response.ok) {
     let errorMessage = `Upload failed with status ${response.status}`;
@@ -65,14 +62,60 @@ export async function uploadDataset({
             : String(errorJson.detail);
         }
       } catch {
-        // ignore JSON parsing error, we already have a generic message
+        // ignore JSON parsing error, keep generic message
       }
     }
     throw new Error(errorMessage);
   }
 
   if (!isJson) {
-    // Stage 2 backend is expected to return JSON, but we guard this anyway.
+    const text = await response.text();
+    return { raw: text };
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches the current status for a ticket from the backend.
+ *
+ * Expected backend endpoint: GET /status?ticket_id=<ticket>
+ *
+ * @param {string} ticketId
+ * @returns {Promise<Object>} Parsed JSON response with status info.
+ */
+export async function fetchUploadStatus(ticketId) {
+  if (!ticketId) {
+    throw new Error("ticketId is required for status polling.");
+  }
+
+  const url = `${API_BASE_URL}/status?ticket_id=${encodeURIComponent(
+    ticketId
+  )}`;
+
+  const response = await fetch(url, { method: "GET" });
+
+  const contentType = response.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+
+  if (!response.ok) {
+    let errorMessage = `Status check failed with status ${response.status}`;
+    if (isJson) {
+      try {
+        const errorJson = await response.json();
+        if (errorJson && errorJson.detail) {
+          errorMessage = Array.isArray(errorJson.detail)
+            ? errorJson.detail.map((d) => d.msg).join("; ")
+            : String(errorJson.detail);
+        }
+      } catch {
+        // ignore JSON parsing errors
+      }
+    }
+    throw new Error(errorMessage);
+  }
+
+  if (!isJson) {
     const text = await response.text();
     return { raw: text };
   }
