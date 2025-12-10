@@ -158,7 +158,7 @@
           </div>
         </section>
 
-        <!-- Step 4: Target format (YOLO only) -->
+        <!-- Step 4: Target format (YOLO / Pascal VOC / TAO KITTI) -->
         <section class="step" id="targetFormatSection">
           <h2 class="step-title">Step 4 — Target format</h2>
           <label class="field">
@@ -166,10 +166,12 @@
             <select id="targetFormatSelect">
               <option value="">-- Select target format --</option>
               <option value="yolo">YOLO (v8-style labels)</option>
+              <option value="pascal_voc">Pascal VOC</option>
+              <option value="tao_kitti">TAO KITTI</option>
             </select>
           </label>
           <p class="muted">
-            Note: When you select YOLO, this tool uses YOLOv8-style label files (class x_center y_center width height, all normalised).  
+            Note: When you select YOLO, this tool uses YOLOv8-style label files (class x_center y_center width height, all normalised).
             This format is compatible with YOLOv5, YOLOv7, YOLOv8, YOLOv9 and YOLOv10.
           </p>
         </section>

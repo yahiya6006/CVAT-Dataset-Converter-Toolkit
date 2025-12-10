@@ -31,6 +31,9 @@ const state = {
   // Timers for status polling
   statusPollTimeoutId: null,
   statusPollIntervalId: null,
+
+  // To avoid popping the label meta more than once
+  labelMetaShown: false,
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -102,6 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // New ticket for this upload/job
     const ticketId = getSessionId();
     state.ticketId = ticketId;
+    state.labelMetaShown = false;
 
     const featureParams = collectFeatureParams(state.featureType);
 
@@ -114,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Start upload
     state.isUploading = true;
-    setAllInputsDisabled(true);
+    setAllInputsDisabled(true); // includes disabling Next
     showStatus("info", "Uploading dataset to backend…");
 
     try {
@@ -157,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     } finally {
       state.isUploading = false;
-      setAllInputsDisabled(false);
+      setAllInputsDisabled(false); // re-enable controls
       refreshNextButtonState();
     }
   });
@@ -301,8 +305,43 @@ async function pollStatusOnce() {
 
       showStatus("info", message);
 
-      // Stop polling if backend reports terminal states
-      if (status.state === "finished" || status.state === "error") {
+      // If label metadata is ready, show a simple popup with details
+      if (
+        status.state === "labels_meta_extracted" &&
+        status.label_meta &&
+        !state.labelMetaShown
+      ) {
+        state.labelMetaShown = true;
+
+        const meta = status.label_meta;
+        const lines = [];
+
+        if (typeof meta.image_count === "number") {
+          lines.push(`Images: ${meta.image_count}`);
+        }
+        if (typeof meta.box_count === "number") {
+          lines.push(`Total boxes: ${meta.box_count}`);
+        }
+
+        const labels = Array.isArray(meta.labels) ? meta.labels : [];
+        if (labels.length > 0) {
+          lines.push("");
+          lines.push("Labels:");
+          labels.forEach((lbl) => {
+            const name = lbl.name ?? "unknown";
+            const count = lbl.count ?? 0;
+            lines.push(`- ${name}: ${count}`);
+          });
+        }
+
+        alert(lines.join("\n"));
+
+        // Once label meta is shown, we can stop polling.
+        stopStatusPolling();
+      }
+
+      // Stop polling if backend reports terminal error
+      if (status.state === "error") {
         stopStatusPolling();
       }
     } else {
