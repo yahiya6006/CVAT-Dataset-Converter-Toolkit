@@ -1,0 +1,253 @@
+/* Basic reset and layout */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0f172a;
+  color: #e5e7eb;
+}
+
+body {
+  min-height: 100vh;
+}
+
+/* App shell */
+.app-root {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 32px;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.app-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 1.9rem;
+  color: #f9fafb;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #9ca3af;
+}
+
+.app-main {
+  display: flex;
+  justify-content: center;
+}
+
+/* Card */
+.card {
+  width: 100%;
+  max-width: 860px;
+  background: rgba(15, 23, 42, 0.95);
+  border-radius: 16px;
+  padding: 20px 18px 18px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+/* Steps */
+.step {
+  padding: 12px 8px;
+  border-bottom: 1px solid rgba(55, 65, 81, 0.6);
+}
+
+.step:last-child {
+  border-bottom: none;
+}
+
+.step-title {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  color: #f3f4f6;
+}
+
+.step-description {
+  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+/* Fields, inputs, buttons */
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.field-label {
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+  color: #e5e7eb;
+}
+
+input[type="file"],
+select,
+input[type="number"],
+input[type="text"] {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+input[type="file"]:focus,
+select:focus,
+input[type="number"]:focus,
+input[type="text"]:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.4);
+}
+
+input::placeholder {
+  color: #6b7280;
+}
+
+/* Radio options */
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+  margin-top: 3px;
+}
+
+.checkbox-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Feature options block */
+.feature-options {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(31, 41, 55, 0.8);
+  border: 1px dashed rgba(148, 163, 184, 0.5);
+}
+
+.feature-title {
+  margin: 0 0 6px 0;
+  font-size: 0.95rem;
+}
+
+/* Two-column layout */
+.two-column {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.two-column .field {
+  flex: 1 1 120px;
+}
+
+/* Footer step */
+.step-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+/* Button */
+button {
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #0b1120;
+  align-self: flex-start;
+  transition: transform 0.06s ease, box-shadow 0.06s ease, background 0.15s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(16, 185, 129, 0.45);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+button:disabled {
+  background: #374151;
+  color: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Status area */
+.status {
+  min-height: 18px;
+  font-size: 0.9rem;
+}
+
+.status.info {
+  color: #e5e7eb;
+}
+
+.status.success {
+  color: #4ade80;
+}
+
+.status.error {
+  color: #f97373;
+}
+
+/* Misc */
+.muted {
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Footer */
+.app-footer {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+/* Small screens */
+@media (max-width: 640px) {
+  .card {
+    padding: 16px 12px;
+  }
+
+  .app-root {
+    padding-inline: 12px;
+  }
+}
