@@ -4,16 +4,17 @@ import asyncio
 from importlib.resources import files
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.staticfiles import StaticFiles
 
 from .app import create_app
 
 
-def create_frontend_app() -> FastAPI:
+def create_frontend_app(api_port: int) -> FastAPI:
     """
     Build a small FastAPI app that serves the built frontend
-    from backend/frontend on a separate port.
+    from backend/frontend on a separate port AND exposes a
+    runtime config JS with the API port.
     """
     app = FastAPI(title="CVAT Dataset Converter UI")
 
@@ -24,10 +25,18 @@ def create_frontend_app() -> FastAPI:
     if not frontend_dir.is_dir():
         raise RuntimeError(f"Frontend directory not found at {frontend_dir!s}")
 
+    # ---- dynamic config JS ----
+    @app.get("/runtime-config.js")
+    async def runtime_config() -> Response:
+        # We only encode the API port here; the host will be derived
+        # from window.location.hostname so that 0.0.0.0 works fine.
+        js = f"""
+        window.CVAT_CONFIG = window.CVAT_CONFIG || {{}};
+        window.CVAT_CONFIG.apiPort = {api_port};
+        """
+        return Response(content=js, media_type="application/javascript")
+
     # Serve index.html and all assets from "/"
-    # - GET /         -> index.html
-    # - GET /css/...  -> CSS
-    # - GET /js/...   -> JS
     app.mount(
         "/",
         StaticFiles(directory=str(frontend_dir), html=True),
@@ -99,7 +108,7 @@ def main() -> None:
 
     # Build the two FastAPI apps
     api_app = create_app()
-    frontend_app = create_frontend_app()
+    frontend_app = create_frontend_app(api_port=api_port)
 
     # Configure two uvicorn servers
     config_api = uvicorn.Config(api_app, host=host, port=api_port, log_level="info")

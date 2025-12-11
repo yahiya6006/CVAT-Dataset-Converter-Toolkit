@@ -8,10 +8,17 @@
  * Base URL of the backend API.
  * Change this when your FastAPI server runs on a different host/port.
  */
-const API_HOST = window.location.hostname;
-const API_PORT = 6007;
-export const API_BASE_URL = `http://${API_HOST}:${API_PORT}`;
-// export const API_BASE_URL = "http://localhost:6007";
+function resolveApiBaseUrl() {
+  const { protocol, hostname } = window.location;
+
+  // Port set at runtime from /runtime-config.js
+  const apiPort =
+    (window.CVAT_CONFIG && window.CVAT_CONFIG.apiPort) || 6007;
+
+  return `${protocol}//${hostname}:${apiPort}`;
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 
 /**
