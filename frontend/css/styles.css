@@ -208,6 +208,28 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.status-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+/* Terminal-like log area */
+.status-log {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #020617;
+  border: 1px solid rgba(55, 65, 81, 0.9);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 0.78rem;
+  max-height: 180px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
 .status.info {
   color: #e5e7eb;
 }

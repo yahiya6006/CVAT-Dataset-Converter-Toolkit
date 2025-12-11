@@ -5,9 +5,11 @@
 
 const statusArea = document.getElementById("statusArea");
 const nextButton = document.getElementById("nextButton");
+const convertOptionsBlock = document.getElementById("convertOptions");
 const resizeOptionsBlock = document.getElementById("resizeOptions");
 const cropOptionsBlock = document.getElementById("cropOptions");
 const targetFormatSection = document.getElementById("targetFormatSection");
+const logArea = document.getElementById("logArea");
 
 /**
  * Shows a status message in the status area.
@@ -32,7 +34,7 @@ export function clearStatus() {
 }
 
 /**
- * Enables or disables the Next button.
+ * Enables or disables the main button.
  *
  * @param {boolean} enabled
  */
@@ -42,13 +44,26 @@ export function setNextButtonEnabled(enabled) {
 }
 
 /**
+ * Sets the main button label.
+ *
+ * @param {string} label
+ */
+export function setNextButtonLabel(label) {
+  if (!nextButton) return;
+  nextButton.textContent = label;
+}
+
+/**
  * Toggle visibility of feature-specific option blocks
  * and target format section based on the selected feature type.
  *
  * @param {string} featureType
  */
 export function toggleFeatureOptions(featureType) {
-  // Hide both feature-specific blocks first
+  // Hide all feature-specific blocks first
+  if (convertOptionsBlock) {
+    convertOptionsBlock.classList.add("hidden");
+  }
   if (resizeOptionsBlock) {
     resizeOptionsBlock.classList.add("hidden");
   }
@@ -57,7 +72,9 @@ export function toggleFeatureOptions(featureType) {
   }
 
   // Show block for selected feature
-  if (featureType === "resize_and_convert") {
+  if (featureType === "convert_only") {
+    convertOptionsBlock?.classList.remove("hidden");
+  } else if (featureType === "resize_and_convert") {
     resizeOptionsBlock?.classList.remove("hidden");
   } else if (featureType === "crop_objects") {
     cropOptionsBlock?.classList.remove("hidden");
@@ -76,8 +93,8 @@ export function toggleFeatureOptions(featureType) {
 }
 
 /**
- * Enables or disables all user inputs to avoid accidental
- * changes during upload.
+ * Enables or disables all user inputs (EXCEPT the main button)
+ * to avoid accidental changes during upload/processing.
  *
  * @param {boolean} disabled
  */
@@ -92,6 +109,8 @@ export function setAllInputsDisabled(disabled) {
     "#preserveAspectCheckbox",
     "#cropPaddingInput",
     "#cropPerClassCheckbox",
+    "#includeImagesCheckbox",
+    "#outputPrefixInput",
   ];
 
   selectors.forEach((sel) => {
@@ -102,8 +121,6 @@ export function setAllInputsDisabled(disabled) {
       }
     });
   });
-
-  setNextButtonEnabled(!disabled);
 }
 
 /**
@@ -127,4 +144,22 @@ export function updateFileInfo(file) {
       : `${sizeKb.toFixed(1)} KB`;
 
   fileInfo.textContent = `Selected: ${file.name} (${sizeStr})`;
+}
+
+/**
+ * Append a line to the terminal-style log.
+ *
+ * @param {string} message
+ */
+export function appendLogLine(message) {
+  if (!logArea) return;
+  const ts = new Date().toLocaleTimeString();
+  logArea.textContent += `[${ts}] ${message}\n`;
+  logArea.scrollTop = logArea.scrollHeight;
+}
+
+/** Clear the terminal-style log. */
+export function clearLog() {
+  if (!logArea) return;
+  logArea.textContent = "";
 }

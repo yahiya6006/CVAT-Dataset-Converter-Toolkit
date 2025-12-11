@@ -64,7 +64,7 @@
               />
               <span>
                 Convert labels only
-                <span class="muted">— keep original images, only convert annotation format.</span>
+                <span class="muted">— keep original images, only convert annotation format (optional include images).</span>
               </span>
             </label>
 
@@ -95,6 +95,21 @@
 
           <!-- Feature-specific options -->
           <div id="featureOptions">
+            <!-- Convert-only options -->
+            <div id="convertOptions" class="feature-options hidden">
+              <h3 class="feature-title">Convert-only options</h3>
+              <label class="field checkbox-field">
+                <input
+                  type="checkbox"
+                  id="includeImagesCheckbox"
+                  checked
+                />
+                <span>
+                  Include original images in the output ZIP. If unchecked, only labels will be generated.
+                </span>
+              </label>
+            </div>
+
             <!-- Resize options -->
             <div id="resizeOptions" class="feature-options hidden">
               <h3 class="feature-title">Resize options</h3>
@@ -176,6 +191,22 @@
           </p>
         </section>
 
+        <!-- Step 5: Output naming -->
+        <section class="step">
+          <h2 class="step-title">Step 5 — Output naming</h2>
+          <p class="step-description">
+            Optional prefix that will be prepended to every output image / label file name.
+          </p>
+          <label class="field">
+            <span class="field-label">Output filename prefix</span>
+            <input
+              type="text"
+              id="outputPrefixInput"
+              placeholder="e.g. CRM2 (result: CRM2_frame_0001.png)"
+            />
+          </label>
+        </section>
+
         <!-- Action + status -->
         <section class="step step-footer">
           <button
@@ -183,15 +214,24 @@
             type="button"
             disabled
           >
-            Next
+            Upload &amp; Process
           </button>
 
-          <div
-            id="statusArea"
-            class="status"
-            role="status"
-            aria-live="polite"
-          ></div>
+          <div class="status-layout">
+            <!-- <div
+              id="statusArea"
+              class="status"
+              role="status"
+              aria-live="polite"
+            ></div> -->
+
+            <!-- Terminal-style log area -->
+            <pre
+              id="logArea"
+              class="status-log"
+              aria-label="Job log"
+            ></pre>
+          </div>
         </section>
       </section>
     </main>

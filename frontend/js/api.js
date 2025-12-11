@@ -122,3 +122,92 @@ export async function fetchUploadStatus(ticketId) {
 
   return response.json();
 }
+
+/**
+ * Cancel an ongoing ticket on the backend.
+ *
+ * @param {string} ticketId
+ * @returns {Promise<Object>}
+ */
+export async function cancelTicket(ticketId) {
+  if (!ticketId) {
+    throw new Error("ticketId is required to cancel a ticket.");
+  }
+
+  const url = `${API_BASE_URL}/cancel`;
+  const body = new URLSearchParams({ ticket_id: ticketId });
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
+
+  const contentType = response.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+
+  if (!response.ok) {
+    let errorMessage = `Cancel failed with status ${response.status}`;
+    if (isJson) {
+      try {
+        const errorJson = await response.json();
+        if (errorJson && errorJson.detail) {
+          errorMessage = Array.isArray(errorJson.detail)
+            ? errorJson.detail.map((d) => d.msg).join("; ")
+            : String(errorJson.detail);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    throw new Error(errorMessage);
+  }
+
+  return isJson ? response.json() : {};
+}
+
+/**
+ * Download the output ZIP for a given ticket.
+ *
+ * @param {string} ticketId
+ * @returns {Promise<{blob: Blob, filename: string}>}
+ */
+export async function downloadOutput(ticketId) {
+  if (!ticketId) {
+    throw new Error("ticketId is required to download output.");
+  }
+
+  const url = `${API_BASE_URL}/download?ticket_id=${encodeURIComponent(
+    ticketId
+  )}`;
+
+  const response = await fetch(url);
+
+  const contentType = response.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+
+  if (!response.ok) {
+    let errorMessage = `Download failed with status ${response.status}`;
+    if (isJson) {
+      try {
+        const errorJson = await response.json();
+        if (errorJson && errorJson.detail) {
+          errorMessage = Array.isArray(errorJson.detail)
+            ? errorJson.detail.map((d) => d.msg).join("; ")
+            : String(errorJson.detail);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    throw new Error(errorMessage);
+  }
+
+  const blob = await response.blob();
+  return {
+    blob,
+    filename: `${ticketId}_output.zip`,
+  };
+}
