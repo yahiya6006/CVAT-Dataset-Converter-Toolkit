@@ -1,0 +1,4 @@
+backend/__pycache__
+backend/cvat_dcut_uploads
+cvat_dataset_converter.egg-info
+dist

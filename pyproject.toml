@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cvat-dataset-converter"
+version = "0.1.0"
+description = "CVAT Dataset Converter Utility (FastAPI backend + static frontend)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+  { name = "Yahiya Mulla", email = "yahiya6006@gmail.com" }
+]
+
+dependencies = [
+  "fastapi>=0.122.0",
+  "uvicorn[standard]>=0.38.0",
+  "pillow>=11.2.1",
+]
+
+# This creates the `cvat_dataset_convert` command after installation
+[project.scripts]
+cvat_dataset_convert = "backend.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["backend"]
+
+[tool.setuptools.package-data]
+backend = [
+  "frontend/index.html",
+  "frontend/css/*",
+  "frontend/js/*",
+]
